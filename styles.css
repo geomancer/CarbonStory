@@ -1,0 +1,51 @@
+/* Center the main title */
+.title {
+  text-align: center;
+}
+
+/* Center the subtitle */
+.subtitle {
+  text-align: center;
+}
+
+/* Center the author(s) */
+.quarto-title-author-name {
+  font-weight: bold;
+  text-align: center;
+}
+
+.quarto-title-meta {
+  font-weight: bold;
+  text-align: center;
+  width: 100%;
+}
+
+.quarto-title-author {
+  display: block;
+  text-align: center;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.quarto-title-author {
+  flex: 0 0 100%;
+}
+
+/* Center the affiliation(s) if present */
+.quarto-title-affiliation {
+  text-align: center;
+}
+
+/* for the logo placement */
+.custom-header-logo {
+  text-align: center;
+  margin-bottom: 1rem; /* space above the title block */
+}
+
+.custom-header-logo img {
+  max-width: 450px;     /* setting width: tweak as needed */
+  height: auto;
+  display: inline-block;
+  margin-top: 0.5rem;   /* tweak vertical spacing */
+  opacity: 0.95;        /* give it a soft tone if needed */
+}

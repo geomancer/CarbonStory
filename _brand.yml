@@ -1,0 +1,34 @@
+meta:
+  name: brand.yml
+  link: https://posit-dev.github.io/brand-yml
+logo:
+  medium: ThinBlueLine.png
+
+# _brand.yml
+color:
+  palette:
+    black: "#1A1A1A"
+    white: "#F9F9F9"
+    orange: "#FF6F20"
+    pink: "#FF3D7F"
+    blue: "#1E90FF"   # add a good link color
+  foreground: black
+  background: white
+  primary: blue        # links/buttons use this now
+  danger: pink
+#  accent: orange       # optional custom key for brand highlights
+
+typography:
+  fonts:
+    - family: Open Sans
+      source: google
+    - family: Rubik
+      source: google
+    - family: IBM Plex Mono
+      source: google
+
+  base: Open Sans
+  headings:
+    family: Rubik
+    weight: 400
+  monospace: IBM Plex Mono
