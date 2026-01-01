@@ -246,119 +246,16 @@ After three years of data collection, it became clear that the concentration of 
 
 That the concentration was rising became obvious. But why the steady increase? The Suess Effect is crucial for climate science because it's a fingerprint of human activity, showing a dilution of heavier carbon isotopes (^13^C and ^14^C) in the atmosphere and oceans due to burning fossil fuels, which releases carbon lacking these isotopes. It provides undeniable proof that rising CO~2~ levels stem from fossil fuels, not natural cycles, helping attribute climate change to human actions and serving as a baseline for tracking carbon uptake by oceans and land, informing climate models and mitigation strategies.
 
-This fingerprint of human activity, showing a dilution of heavier carbon isotopes`^13^C and ^14^C`in the atmosphere and oceans due to burning fossil fuels, which releases carbon lacking these isotopes. It provides undeniable proof that rising`CO~2~`levels stem from fossil fuels, not natural cycles, helping attribute climate change to human actions and serving as a baseline for tracking carbon uptake by oceans and land, informing climate models and mitigation strategies. Here we see as CO2 levels rise the increasing\`^12^C from fossil fuels decreases the ^13^C/^12^C ratio:
+This fingerprint of human activity, showing a dilution of heavier carbon isotopes ^13^C and ^14^C in the atmosphere and oceans due to burning fossil fuels, which releases carbon lacking these isotopes. It provides undeniable proof that rising CO~2~ levels stem from fossil fuels, not natural cycles, helping attribute climate change to human actions and serving as a baseline for tracking carbon uptake by oceans and land, informing climate models and mitigation strategies. Here we see as CO~2~ levels rise the increasing ^12^C from fossil fuels decreases the ^13^C/^12^C ratio:
 
 ```{r}
-# ============================================================
-# 10a_Keeling_Suess_Facet.R
-#
-# Purpose:
-#   Facet the classic Keeling CO2 curve over the descending
-#   13C (Keeling–Suess effect) record.
-#
-# Inputs:
-#   data/co2_monthly_mlo_clean.rds  (cols: year, month, decimal_year, co2_ppm, trend, ndays, sdev, unc)
-#   data/c13_monthly_mlo_clean.rds  (from 02k_Keeling_Suess_ETL.R)
-#
-# Output:
-#   images/keeling_suess_facet_mlo.png
-# ============================================================
-
-library(tidyverse)
-library(lubridate)
-
-dir.create("images", showWarnings = FALSE)
-
-co2_path <- "data/co2_monthly_mlo_clean.rds"
-c13_path <- "data/c13_monthly_mlo_clean.rds"
-
-stopifnot(file.exists(co2_path))
-stopifnot(file.exists(c13_path))
-
-co2_raw <- readRDS(co2_path)
-c13_raw <- readRDS(c13_path)
-
-# ---- Build CO2 series using co2_ppm ---------------------------------------
-
-if (!all(c("year", "month", "co2_ppm") %in% names(co2_raw))) {
-  stop("co2_monthly_mlo_clean.rds must contain 'year', 'month', and 'co2_ppm' columns.")
-}
-
-co2 <- co2_raw %>%
-  mutate(
-    year  = as.integer(year),
-    month = as.integer(month),
-    date  = make_date(year, month, 15L),
-    value = as.numeric(co2_ppm),
-    series = "Atmospheric CO2 (ppm)"
-  ) %>%
-  filter(!is.na(date), !is.na(value)) %>%
-  select(date, value, series)
-
-# ---- Build 13C series using c13_filled ------------------------------------
-
-if (!all(c("year", "month", "c13_filled") %in% names(c13_raw))) {
-  stop("c13_monthly_mlo_clean.rds must contain 'year', 'month', and 'c13_filled' columns.")
-}
-
-c13 <- c13_raw %>%
-  mutate(
-    year  = as.integer(year),
-    month = as.integer(month),
-    date  = make_date(year, month, 15L),
-    value = as.numeric(c13_filled),
-    series = "δ13C in CO2 (‰)"
-  ) %>%
-  filter(!is.na(date), !is.na(value)) %>%
-  select(date, value, series)
-
-# ---- Combine + order facets -----------------------------------------------
-
-both <- bind_rows(co2, c13) %>%
-  mutate(
-    series = factor(
-      series,
-      levels = c("Atmospheric CO2 (ppm)", "δ13C in CO2 (‰)")
-    )
-  ) %>%
-  arrange(series, date)
-
-# (Optional) to show only overlapping period (from 1980 on), uncomment:
-# both <- both %>% filter(date >= as.Date("1980-01-01"))
-
-# ---- Plot: Keeling–Suess facet -------------------------------------------
-
-carbon_red <- "#C00000"  # Carbon Story themed red
-
-p <- ggplot(both, aes(x = date, y = value)) +
-  geom_line(linewidth = 0.7, color = carbon_red) +
-  facet_wrap(
-    ~ series,
-    ncol = 1,
-    scales = "free_y"
-  ) +
-  labs(
-    title    = "Keeling–Suess Effect at Mauna Loa",
-    subtitle = "Rising atmospheric CO₂ and declining δ¹³C from Scripps flask records",
-    x        = "Year",
-    y        = NULL,
-    caption  = "Source: Scripps CO₂ Program (Keeling & Walker, flask archive 21-Feb-2025)"
-  ) +
-  theme_minimal(base_size = 12) +
-  theme(
-    plot.title       = element_text(hjust = 0.5, face = "bold"),
-    plot.subtitle    = element_text(hjust = 0.5),
-    strip.text       = element_text(face = "bold"),
-    panel.grid.minor = element_blank()
-  )
-
-print(p)
+source("scripts/10a_Keeling_Suess_Facet.R")
 
 ```
 
 ## The Historical Record
 
-It turns out that we can measure the temperature record over the last 150,000 years. To do this I chose to use the Vostok and Law Dome historical data. Vostok and Law Dome measure historical temperatures560 using ice cores, analyzing the ratios of heavy to light oxygen and hydrogen isotopes (like Deuterium) in water molecules, which vary with past air temperatures, and also by studying air bubbles trapped in the ice to find ancient greenhouse gas levels, correlating these proxies to reconstruct past climate, with Vostok famous for long CO2 records and Law Dome for high-resolution recent data.
+It turns out that we can measure the temperature record over the last 150,000 years. To do this I chose to use the Vostok and Law Dome historical data. Vostok and Law Dome measure historical temperatures using ice cores, analyzing the ratios of heavy to light oxygen and hydrogen isotopes (like Deuterium) in water molecules, which vary with past air temperatures, and also by studying air bubbles trapped in the ice to find ancient greenhouse gas levels, correlating these proxies to reconstruct past climate, with Vostok famous for long CO~2~ records and Law Dome for high-resolution recent data.
 
 Combining these data sets give us the well-known hockey stick chart. I have chosen to depict this a three layer chart which shows the measurements over the last 160,000 years, over the 12,000 Holocene years, and over the 50 years of the Anthropocene.
 
@@ -876,9 +773,7 @@ print(p)
 
 ### Consequence #1: increasingly frequent and intense climate disasters
 
-There's a strong positive correlation: as CO~2~ levels and global temperatures rise, the frequency and cost of billion-dollar climate disasters (like hurricanes, floods, droughts) also significantly increase, demonstrating that rising greenhouse gases are directly linked to escalating economic burdens from extreme weather events, according to studies analyzing U.S. data from 1980-2021.
-
-Looking across the full record of annual U.S. billion-dollar disaster losses and global temperature anomalies, a simple linear model shows that each additional 1°C of global warming is associated with roughly \[S\] billion dollars in extra disaster losses per year. That translates to about \[S×0.1\] billion dollars for every 0.1°C of warming, or about \[S/1.8×0.1\] billion dollars for every 0.1°F. In this framework, cooling by the same increments would be expected to reduce average losses by a similar amount. Here, we look at the accumulated cost of the recorded billion dollar events since 1980.
+There's a strong positive correlation: as CO~2~ levels and global temperatures rise, the frequency and cost of billion-dollar climate disasters (like hurricanes, floods, droughts) also significantly increase, demonstrating that rising greenhouse gases are directly linked to escalating economic burdens from extreme weather events, according to studies analyzing U.S. data from 1980-2021. Here, we look at the accumulated cost of the recorded billion dollar events since 1980.
 
 ```{r}
 # 07e_Most_Expensive_Disasters_Neurath_Isotype_Single_Row.R
@@ -1202,7 +1097,7 @@ print(p_global_glaciers)
 
 ### Consequence #3: Sea Level Rise
 
-Higher CO2 levels trap heat, warming the planet, which directly causes sea level rise through melting ice (glaciers, ice sheets) and thermal expansion (warm water taking up more space), a critical issue because rising seas threaten coastal communities, infrastructure, economies, and ecosystems with flooding, erosion, and saltwater intrusion, impacting millions globally. This correlation is strong over geological time and current human-caused warming amplifies it, though sea level response lags behind immediate warming due to ocean and ice inertia, meaning effects persist for centuries.
+Higher CO~2~ levels trap heat, warming the planet, which directly causes sea level rise through melting ice (glaciers, ice sheets) and thermal expansion (warm water taking up more space), a critical issue because rising seas threaten coastal communities, infrastructure, economies, and ecosystems with flooding, erosion, and saltwater intrusion, impacting millions globally. This correlation is strong over geological time and current human-caused warming amplifies it, though sea level response lags behind immediate warming due to ocean and ice inertia, meaning effects persist for centuries.
 
 For instance, here is a 50 mile radius around San Francisco, CA. If sea level rises 1.5m you will see purple...and at 2m rise you see red. We can do this by generating an area map, then using a high resolution Digital Elevation Model (DEM) to query a locations elevation above sea level, and using this to color a dot over the map. The current implementation only does locations in the U.S.: other countries may or may not have publicly available data available.
 
