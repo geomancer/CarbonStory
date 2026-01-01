@@ -1,0 +1,20 @@
+# --- RStudio / R ---
+.Rproj.user/
+.Rhistory
+.RData
+.Ruserdata
+
+# --- Quarto internals ---
+/.quarto/
+*_cache/
+_freeze/
+
+# --- Source inputs (local-only) ---
+data/
+scripts/
+figures/
+images/
+
+# --- OS noise ---
+.DS_Store
+Thumbs.db
