@@ -1,0 +1,1390 @@
+---
+#title: "Shambhala Zoom Event Reporting/nUsing brand.yml"
+title: Exerpts from a Carbon Story<br>The Past, Present, and Future
+subtitle: "Author: David Takahashi<br>December 2025" 
+format:
+  html:
+    theme: brand.yml
+    include-before-body: _logo.html
+    # optional if you're using an output dir or self-contained:
+    # self-contained: true
+# if you’re in a project with an output-dir, this ensures files are copied:
+resources:
+  - ThinBlueLine.png
+  - _logo.html
+  - styles.css
+editor: visual
+execute:
+  echo: false # Do not show code in the output
+  warning: false # Do not show warnings
+  error: false # Do not show errors (errors will not halt processing)
+  cache: true # Cache chunk results for faster rendering
+  freeze: true # Freeze execution outputs for faster rendering
+css: styles.css
+
+####Preamble ####
+#Purpose: Reporting the analysis of Shambhala Zoom Event data
+#Author: David Takahashi for the Mirror Data Group
+#Date: October 2025
+#Contact: David Takahashi <the.dragons.be.here@gmail.com>
+#License: As long as zoom events are reported 
+#Pre-requisites:
+#- tidyverse, lubridate
+
+####Workspace setup ####
+####Plan Section ####
+####Simulate Section ####
+####Acquire Section ####
+####Explore Section ####
+####Share Section ####
+####Next Section #### 
+---
+
+## David's Final Project
+
+I have been learning how to incorporate data visualization in my workflow. In order to do this I started a personal project that documents the discovery of Climate Change. This has meant finding publicly available data archives, downloading them, loading and cleaning the data, and then using the data frames to render visualizations.
+
+This is an excerpt of my progress. The header is a shot of the thin atmosphere that reaches 63 miles above the ground. If the Earth were a basketball, our atmosphere would be like shrink wrapping. The atmosphere is where much of the climate change action is happening.
+
+Fasten your seat belts, folks.
+
+## Background
+
+David's late father-in-law, David Keeling, was an Earth Scientist who recorded the concentration of CO~2~ in the atmosphere daily, starting in 1958. In visits to his daughter, we would take long walks that allowed me to understand his research. The concentration of CO~2~ is measured in parts-per-million, and CO~2~ comprises 0.04% of the atmosphere. With the accurate data, scientists were able to predict the consequences of rising CO~2~ concentrations.
+
+David's home burned to the ground in a wildfire outside Boulder, CO in September 2010. The wildfire was a predicted consequence of global warming.
+
+## The Keeling Curve
+
+There has been mounting evidence that the climate is changing due to increased heating of the atmosphere. The record we know as the Keeling Curve provided circumstantial evidence that the increased concentration of CO~2~ is rising, with it global temperatures, and that the rise is attributed to the burning of fossil fuels. I decided I would begin my research by locating, downloading, and graphing the data that has been recorded since 1958. Here is the chart: the saw-tooth behavior and the year-over-year rising are notable:
+
+```{r}
+# ============================================================
+# 05_keeling_monthly_with_trend.R
+#
+# Purpose:
+#   Traditional Keeling Curve with trend line:
+#   Monthly Mauna Loa CO2 from 1958–2025
+#
+# Input:
+#   data/co2_monthly_mlo_clean.rds
+#
+# Output:
+#   images/keeling_monthly_1958_2025_trend.png
+# ============================================================
+
+library(tidyverse)
+
+# ---- Load Monthly CO₂ ----
+monthly_path <- "data/co2_monthly_mlo_clean.rds"
+stopifnot(file.exists(monthly_path))
+
+co2_monthly <- readRDS(monthly_path)
+
+# Quick check of available columns
+message("Columns in monthly file: ", paste(names(co2_monthly), collapse = ", "))
+
+# ---- Filter for traditional Keeling-era range ----
+co2_keeling <- co2_monthly %>%
+  filter(year >= 1958, year <= 2025)
+
+# ---- Base plot: monthly CO2 (co2_ppm) ----
+p <- ggplot(co2_keeling, aes(x = decimal_year, y = co2_ppm)) +
+  geom_line(color = "#004B8D", size = 0.5) +
+  scale_y_continuous(
+    limits = c(300, 450),
+    expand = expansion(mult = 0)
+  ) +
+  scale_x_continuous(
+    breaks = seq(1960, 2025, by = 5)
+  ) +
+  labs(
+    title = expression("Monthly CO"[2] * " at Mauna Loa Observatory"),
+    subtitle = "1958–2025 | Raw monthly means with trend line (NOAA/Scripps)",
+    x = "Year",
+    y = expression("CO"[2] * " concentration (ppm)")
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title       = element_text(face = "bold"),
+    panel.grid.minor = element_blank(),
+    axis.text.x      = element_text(angle = 45, hjust = 1)
+  )
+
+# ---- Add trend line if available ----
+if ("trend" %in% names(co2_keeling)) {
+  p <- p +
+    geom_line(aes(y = trend),
+              color = "black",
+              linewidth = 0.7,
+              alpha = 0.7)
+  message("Added trend line from 'trend' column.")
+} else {
+  message("No 'trend' column found in co2_keeling; skipping trend line.")
+}
+
+print(p)
+
+# ---- Save ----
+# dir.create("images", showWarnings = FALSE)
+# ggsave("images/keeling_monthly_1958_2025_trend.png",
+#        p, width = 10, height = 5, dpi = 300)
+# 
+# message("✓ Saved Keeling Curve with trend to images/keeling_monthly_1958_2025_trend.png")
+
+```
+
+In 1958 David Keeling began accurately recording the concentration of CO~2~ in the northern hemisphere. The first few years he was puzzled by the rising and falling of the concentration. He thought his instrumentation might be faulty. His tests verified that his instruments were reading reference samples accurately. The first 3 years of data looked like this:
+
+```{r}
+# ============================================================
+# 05_Keeling_First_3_years.R
+#
+# Purpose:
+#   Plot the first 3 years of the Keeling Curve as one
+#   continuous timeline:
+#   - x-axis: 36 months (month letters repeated)
+#   - year label centered under Jun–Jul for each year.
+#
+# Input:
+#   data/co2_monthly_mlo_clean.rds
+#
+# Output:
+#   images/keeling_first_3_years.png
+# ============================================================
+
+library(tidyverse)
+
+# ---- Load Monthly CO₂ ----
+monthly_path <- "data/co2_monthly_mlo_clean.rds"
+stopifnot(file.exists(monthly_path))
+
+co2_monthly <- readRDS(monthly_path)
+
+# ---- Filter to traditional Keeling-era range ----
+co2_keeling <- co2_monthly %>%
+  filter(year >= 1958)  # upper bound not needed here
+
+# ---- Take the FIRST 3 YEARS ----
+first_year <- min(co2_keeling$year, na.rm = TRUE)
+yrs <- first_year + 0:2   # e.g., 1958, 1959, 1960
+
+co2_3yr <- co2_keeling %>%
+  filter(year %in% yrs) %>%
+  arrange(year, month) %>%
+  mutate(
+    # Continuous month index from 1 to 36
+    month_index = (year - first_year) * 12 + month,
+    # Month letters (J F M A M J J A S O N D), repeated per year
+    month_letter = substr(month.abb[month], 1, 1)
+  )
+
+# Range for placing year labels a bit below the curve
+y_min <- min(co2_3yr$co2_ppm, na.rm = TRUE)
+label_y <- y_min - 2  # adjust if you need more/less space
+
+# Positions to center the year under Jun–Jul of each year:
+# months 1–12  -> center at 6.5
+# months 13–24 -> center at 18.5
+# months 25–36 -> center at 30.5
+year_labels <- tibble(
+  year        = yrs,
+  x_center    = c(6.5, 18.5, 30.5),
+  y_position  = label_y
+)
+
+# ---- Plot ----
+p <- ggplot(co2_3yr, aes(x = month_index, y = co2_ppm)) +
+  geom_line(color = "#D62828", linewidth = 1.7) +
+  
+  scale_x_continuous(
+    breaks = 1:36,
+    labels = rep(substr(month.abb, 1, 1), times = 3),
+    expand = expansion(mult = c(0.02, 0.02))
+  ) +
+  
+  # Year labels beneath Jun–Jul
+  geom_text(
+    data = year_labels,
+    aes(x = x_center, y = y_position, label = year),
+    inherit.aes = FALSE,
+    fontface = "bold",
+    size = 5
+  ) +
+  
+  
+  labs(
+    title = "First Three Years of the Keeling Curve",
+    subtitle = bquote(.(first_year) * "–" * .(first_year + 2) *
+                        " | Monthly " * CO[2] * " at Mauna Loa"),
+    x = NULL,
+    y = expression(CO[2] * " concentration (ppm)")
+  ) +
+  
+  coord_cartesian(clip = "off") +  # allow labels below panel
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(face = "bold"),
+    panel.grid.minor = element_blank(),
+    panel.grid.major.x = element_blank(),
+    plot.margin = margin(20, 20, 40, 20)  # extra bottom space for year labels
+  )
+
+print(p)
+
+# ---- Save ----
+# dir.create("images", showWarnings = FALSE)
+# ggsave("images/keeling_first_3_years.png",
+#        p, width = 10, height = 5, dpi = 300)
+# 
+# message("✓ Saved first 3-year Keeling Curve to images/keeling_first_3_years.png")
+```
+
+After three years of data collection, it became clear that the concentration of CO~2~ rose and fell on a seasonal cycle. What had initially looked like faulty instrumentation turned out to be the rise of CO~2~ in the winter when photosynthesis was curtailed and the falling when trees were fully leafed out and photosynthesizing CO~2~. This was a surprising revelation. This rising a falling, year after year was recognized as the Earth respiring just as we do.
+
+## The Suess Effect:
+
+Scientists could see that the amount of carbon dioxide (CO₂) in the air was going up. But the big question was: why?
+
+The answer comes from something called the **Suess Effect**, which works like a fingerprint. Carbon comes in different types, called isotopes. Some are heavier (like carbon-13 and carbon-14), and some are lighter (carbon-12). Fossil fuels—like coal, oil, and gas—are very old, and they mostly contain the lighter kind, carbon-12.
+
+When humans burn fossil fuels, we release a lot of carbon-12 into the air. This extra carbon-12 “dilutes” the heavier kinds of carbon in the atmosphere and oceans. Scientists can measure this change. As CO₂ levels rise, the balance between carbon-13 and carbon-12 shifts, showing more carbon-12 than before.
+
+This change proves that the extra CO₂ is coming from human activities, not from natural cycles like volcanoes or plant growth. The Suess Effect helps scientists track where carbon goes—into the air, the oceans, or the land—and use that information to understand climate change and figure out how to reduce its impact. In these graphs, one moves up, the other down; both with seasonal variations.
+
+```{r suess-plot, message=FALSE, warning=FALSE}
+# your plotting code here
+source("scripts/10a_Keeling_Suess_Facet.R")
+
+```
+
+## The Historical Record
+
+It turns out that we can measure the temperature record over the last 150,000 years. To do this I chose to use the Vostok and Law Dome historical data. Vostok and Law Dome measure historical temperatures using ice cores, analyzing the ratios of heavy to light oxygen and hydrogen isotopes (like Deuterium) in water molecules, which vary with past air temperatures, and also by studying air bubbles trapped in the ice to find ancient greenhouse gas levels, correlating these proxies to reconstruct past climate, with Vostok famous for long CO~2~ records and Law Dome for high-resolution recent data.
+
+Combining these data sets give us the well-known hockey stick chart. I have chosen to depict this a three layer chart which shows the measurements over the last 160,000 years, over the 12,000 Holocene years, and over the 50 years of the Anthropocene.
+
+```{r}
+# ============================================================
+# 14b_co2_three_panel_story.R
+#
+# Purpose:
+#   3-panel CO2 "Carbon Story" figure:
+#     A) 160,000 years: Vostok + Law Dome + Keeling
+#     B) Holocene: stitched Vostok → Law Dome → Keeling
+#        (with dashed bridge across Vostok–Law Dome data gap)
+#     C) Industrial era: Law Dome + Keeling
+# ============================================================
+
+library(tidyverse)
+library(patchwork)
+
+dir.create("images", showWarnings = FALSE)
+
+# ---- Load and standardize each source ----------------------
+
+vostok <- readRDS("data/vostok_160k_co2_clean.rds") %>%
+  transmute(
+    source   = "Vostok",
+    year_ce  = 1950 - age_yr_bp,
+    co2_ppm  = co2_mean_ppm
+  )
+
+lawdome <- readRDS("data/law_dome_co2_clean.rds") %>%
+  transmute(
+    source  = "LawDome",
+    year_ce = year,
+    co2_ppm
+  )
+
+keeling <- readRDS("data/co2_annual_mlo_from_monthly.rds") %>%
+  transmute(
+    source  = "Keeling",
+    year_ce = year,
+    co2_ppm
+  )
+
+co2_by_source <- bind_rows(vostok, lawdome, keeling)
+
+source_cols <- c(
+  "Vostok"  = "#1f78b4",
+  "LawDome" = "#33a02c",
+  "Keeling" = "#e31a1c"
+)
+
+panel_limits <- function(df, expand = 0.05) {
+  r <- range(df$co2_ppm, na.rm = TRUE)
+  pad <- diff(r) * expand
+  c(r[1] - pad, r[2] + pad)
+}
+
+theme_co2 <- theme_minimal(base_size = 11) +
+  theme(
+    plot.title.position = "plot",
+    legend.position     = "right",
+    plot.caption        = element_text(hjust = 0)
+  )
+
+# ============================================================
+# Panel A: Deep time (160,000 years)
+# ============================================================
+
+deep_df <- co2_by_source
+yl_deep <- panel_limits(deep_df)
+
+p_deep <- ggplot(
+  deep_df,
+  aes(x = year_ce, y = co2_ppm, color = source)
+) +
+  geom_line(linewidth = 0.5) +
+  scale_color_manual(values = source_cols, breaks = names(source_cols)) +
+  scale_y_continuous(limits = yl_deep) +
+  labs(
+    title = "A) 160,000 years: Glacial–interglacial cycles",
+    x     = "Year (CE)",
+    y     = "CO₂ (ppm)",
+    color = "Dataset"
+  ) +
+  theme_co2
+
+# ============================================================
+# Panel B: Holocene (stitched Vostok → Law Dome → Keeling)
+#   Same logic as 14c:
+#     - Vostok:  -11,000 → first Law Dome year
+#     - Law Dome: first Law Dome year → year before Keeling
+#     - Keeling:  first Keeling year → present
+#   With dashed bridge over Vostok–Law Dome data gap.
+# ============================================================
+
+min_law_year  <- min(lawdome$year_ce, na.rm = TRUE)
+min_keel_year <- min(keeling$year_ce, na.rm = TRUE)
+last_law_year <- min_keel_year - 1
+
+holo_vostok_B <- vostok %>%
+  filter(year_ce >= -11000, year_ce <= min_law_year)
+
+holo_law_B <- lawdome %>%
+  filter(year_ce >= min_law_year, year_ce <= last_law_year)
+
+holo_keel_B <- keeling %>%
+  filter(year_ce >= min_keel_year)
+
+holocene_B <- bind_rows(holo_vostok_B, holo_law_B, holo_keel_B) %>%
+  arrange(year_ce) %>%
+  mutate(
+    source = factor(source, levels = c("Vostok", "LawDome", "Keeling"))
+  )
+
+# dashed bridge between last Vostok and first Law Dome
+last_vostok_B <- holo_vostok_B %>%
+  filter(!is.na(co2_ppm)) %>%
+  arrange(year_ce) %>%
+  tail(1)
+
+first_law_B <- holo_law_B %>%
+  filter(!is.na(co2_ppm)) %>%
+  arrange(year_ce) %>%
+  slice(1)
+
+bridge_B <- tibble(
+  x    = last_vostok_B$year_ce,
+  xend = first_law_B$year_ce,
+  y    = last_vostok_B$co2_ppm,
+  yend = first_law_B$co2_ppm
+)
+
+yl_holo <- panel_limits(holocene_B)
+
+p_holo <- ggplot(holocene_B,
+                 aes(x = year_ce, y = co2_ppm, color = source)) +
+  geom_line(linewidth = 0.8) +
+  geom_segment(
+    data = bridge_B,
+    aes(x = x, xend = xend, y = y, yend = yend),
+    inherit.aes = FALSE,
+    colour = "grey40",
+    linetype = "dashed",
+    linewidth = 0.7
+  ) +
+  scale_color_manual(values = source_cols, breaks = names(source_cols)) +
+  scale_y_continuous(limits = yl_holo) +
+  labs(
+    title = "B) Holocene: Last 11,000 years",
+    x     = "Year (CE)",
+    y     = "CO₂ (ppm)"
+  ) +
+  theme_co2 +
+  theme(legend.position = "none")
+
+# ============================================================
+# Panel C: Industrial era (1750 → present)
+# ============================================================
+
+ind_df <- co2_by_source %>%
+  filter(year_ce >= 1750)
+
+yl_ind <- panel_limits(ind_df)
+
+p_ind <- ggplot(
+  ind_df,
+  aes(x = year_ce, y = co2_ppm, color = source)
+) +
+  geom_line(linewidth = 0.7) +
+  scale_color_manual(values = source_cols, breaks = names(source_cols)) +
+  scale_y_continuous(limits = yl_ind) +
+  labs(
+    title = "C) Industrial era: The modern CO₂ spike",
+    x     = "Year (CE)",
+    y     = "CO₂ (ppm)"
+  ) +
+  theme_co2 +
+  theme(legend.position = "none")
+
+# ============================================================
+# Assemble & save
+# ============================================================
+
+p_three <- (p_deep / p_holo / p_ind) +
+  plot_layout(ncol = 1, heights = c(1.1, 1, 1)) +
+  plot_annotation(
+    title    = "Vostok → Law Dome → Keeling: 160,000 Years of Atmospheric CO₂",
+    subtitle = "Deep-time ice cores and modern measurements on a common scale",
+    caption  = "BP = years before present (1950). Vostok: Antarctic ice core; Law Dome: Antarctic ice core; Keeling: Mauna Loa Observatory."
+  )
+
+print(p_three)
+
+# ggsave(
+#   filename = "images/14b_co2_three_panel_story.png",
+#   plot     = p_three,
+#   width    = 9,
+#   height   = 10,
+#   dpi      = 300
+# )
+# 
+# message("Saved 3-panel CO₂ story with stitched Holocene to images/14b_co2_three_panel_story.png")
+
+```
+
+## Evidence of Global Warming
+
+Climate stripes visually show global warming by using colored bars (stripes) for each year, with blues for cooler-than-average years and reds for warmer years, revealing a stark, undeniable shift from cool blues to intense reds, directly correlating with the rise of human-emitted greenhouse gases like CO~2~ that trap heat and cause this warming trend. The darker the shade, the further the temperature deviates from the long-term average, making the rapid increase in recent decades visually clear and impactful.
+
+Though I have downloaded temperature data from ice-core and tree-ring data. I have chosen to only show the years covered by the Keeling curve to suggest how global mean temperature tracks with increasing CO~2~ concentrations:
+
+```{r}
+# ============================================================
+# 06_climate_stripes_global_1958-2024.R
+#
+# Purpose:
+#   Create global climate "warming stripes" using HadCRUT5
+#   global annual temperature anomalies.
+#
+# Input:
+#   data/hadcrut_global_annual_clean.rds
+#
+# Outputs:
+#   images/climate_stripes_global_plain.png
+#   images/climate_stripes_global_titled.png
+#   images/climate_stripes_global_with_legend.png
+# ============================================================
+
+dir.create("images", showWarnings = FALSE)
+
+pkgs <- c("tidyverse")
+to_install <- setdiff(pkgs, rownames(installed.packages()))
+if (length(to_install) > 0) install.packages(to_install)
+
+library(tidyverse)
+
+# ---- Parameters ----
+year_start <- 1958    # adjust if you want a different window
+year_end   <- 2024    # or max available year
+
+had_path <- "data/hadcrut_global_annual_clean.rds"
+stopifnot(file.exists(had_path))
+
+had <- readRDS(had_path)
+
+# Filter to desired period
+stripes_df <- had %>%
+  filter(year >= year_start, year <= year_end) %>%
+  arrange(year)
+
+if (nrow(stripes_df) == 0) {
+  stop("No HadCRUT data in the range ", year_start, "–", year_end)
+}
+
+message("Stripes will cover years ", year_start, "–", year_end)
+
+# Basic range for anomalies (useful for consistent color mapping)
+anom_min <- min(stripes_df$temp_anomaly_degC, na.rm = TRUE)
+anom_max <- max(stripes_df$temp_anomaly_degC, na.rm = TRUE)
+message("Temperature anomaly range (°C): ",
+        round(anom_min, 3), " to ", round(anom_max, 3))
+
+# ---- Ed Hawkins–style color scale ----
+# Deep blues for cold, whites near zero, deep reds for hot
+stripe_colors <- c(
+  "#08306B", "#08519C", "#2171B5", "#6BAED6", "#C6DBEF",
+  "#F7FBFF",
+  "#FEE0D2", "#FC9272", "#CB181D", "#99000D"
+)
+
+# We'll map anomalies to this palette via a diverging gradient:
+fill_scale <- scale_fill_gradientn(
+  colours = stripe_colors,
+  limits  = c(anom_min, anom_max),
+  oob     = scales::squish,
+  name    = "Temperature anomaly (°C)"
+)
+
+# ---- 1. Plain stripes (no text, no legend) ----
+p_plain <- ggplot(stripes_df, aes(x = year, y = 1, fill = temp_anomaly_degC)) +
+  geom_tile() +
+  fill_scale +
+  coord_cartesian(expand = FALSE) +
+  theme_void() +
+  theme(
+    legend.position = "none",
+    plot.margin = margin(0, 0, 0, 0)
+  )
+
+# ---- 2. Stripes with title/subtitle (no legend) ----
+p_titled <- ggplot(stripes_df, aes(x = year, y = 1, fill = temp_anomaly_degC)) +
+  geom_tile() +
+  fill_scale +
+  
+  # === ADD THIS SECTION FOR X-AXIS LABELS ===
+  scale_x_continuous(
+    breaks = seq(from = year_start, to = year_end, by = 5),
+    # Add a label every 10 years
+    labels = seq(from = year_start, to = year_end, by = 5),
+    # Use the year number as the label
+    expand = c(0, 0) # Prevents space at the ends of the axis
+  ) +
+  # ==========================================
+
+  # Hide y-axis elements since this is a stripe plot
+  scale_y_continuous(expand = c(0, 0)) +
+  
+  coord_cartesian(expand = FALSE) +
+  labs(
+    title    = "Global Warming Stripes",
+    subtitle = paste0("HadCRUT5 global annual anomalies, ", year_start, "–", year_end)
+  ) +
+
+  # theme_void() +
+  # Replace theme_void() with:
+  theme_minimal(base_size = 10) +
+  theme(
+    panel.grid = element_blank(),
+    
+    # ----- Y-axis hidden -----
+    axis.title.y = element_blank(),
+    axis.text.y  = element_blank(),
+    axis.ticks.y = element_blank(),
+    
+    # ----- X-axis ticks (the fix!) -----
+    axis.title.x = element_blank(),
+    axis.ticks.x        = element_line(color = "black", linewidth = 0.3),
+    axis.ticks.length.x = unit(3, "pt"),
+    
+    legend.position = "none",
+    plot.margin = margin(t = 10, r = 10, b = 10, l = 10),
+    plot.title   = element_text(hjust = 0.5, face = "bold", size = 14, margin = margin(b = 4)),
+    plot.subtitle= element_text(hjust = 0.5, size = 10)
+  )
+
+# ---- 3. Stripes with title AND legend (sidebar) ----
+p_with_legend <- ggplot(stripes_df, aes(x = year, y = 1, fill = temp_anomaly_degC)) +
+  geom_tile() +
+  fill_scale +
+  coord_cartesian(expand = FALSE) +
+  theme_void() +
+  theme(
+    legend.position = "right",
+    legend.title    = element_text(size = 10),
+    legend.text     = element_text(size = 8),
+    plot.margin     = margin(t = 10, r = 10, b = 10, l = 10),
+    plot.title      = element_text(hjust = 0.5, face = "bold", size = 14, margin = margin(b = 4)),
+    plot.subtitle   = element_text(hjust = 0.5, size = 10)
+  ) +
+  labs(
+    title    = "Global Warming Stripes (with Legend)",
+    subtitle = paste0("HadCRUT5 global annual anomalies, ", year_start, "–", year_end)
+  )
+
+print(p_titled)
+
+# ---- Save outputs ----
+# ggsave("images/Keeling_climate_stripes_global_plain.png",
+#        p_plain, width = 10, height = 1.5, dpi = 300)
+# 
+# ggsave("images/Keeling_climate_stripes_global_titled.png",
+#        p_titled, width = 10, height = 2, dpi = 300)
+# 
+# ggsave("images/Keeling_climate_stripes_global_with_legend.png",
+#        p_with_legend, width = 11, height = 2.5, dpi = 300)
+# 
+# message("✓ Saved:")
+# message("  images/Keeling_climate_stripes_global_plain.png")
+# message("  images/Keeling_climate_stripes_global_titled.png")
+# message("  images/Keeling_climate_stripes_global_with_legend.png")
+# message("04_climate_stripes_global.R completed successfully.")
+
+```
+
+## CO~2~ Level Rise as Rising Temperature
+
+This leads to inquire whether we can display the CO~2~ effect on global temperature in a single graph. Here is an attempt to distill how the increasing levels of atmospheric CO~2~ are affecting global temperatures:
+
+```{r}
+#| dev: ragg_png # needed to render chart in quarto!
+#| fig-width: 9
+#| fig-height: 5
+
+# ============================================================
+# 05_Keeling_Annual_TempColored_Ribbon.R
+#
+# Purpose:
+#   Smooth “temperature surface” under the Keeling curve:
+#     - geom_ribbon() creates a continuous color-graded area
+#     - Fill color = HadCRUT5 global temperature anomaly
+#     - Black monthly squiggle (wiggles) overlaid
+#     - Black deseasonalized trend overlaid
+#
+# Inputs:
+#   data/co2_monthly_mlo_clean.rds
+#   data/hadcrut_global_annual_clean.rds
+#
+# Output:
+#   images/keeling_ribbon_tempcolored_1958_present.png
+# ============================================================
+
+dir.create("images", showWarnings = FALSE)
+
+library(tidyverse)
+library("ragg")
+
+co2_path <- "data/co2_monthly_mlo_clean.rds"
+had_path <- "data/hadcrut_global_annual_clean.rds"
+
+stopifnot(file.exists(co2_path), file.exists(had_path))
+
+co2_monthly <- readRDS(co2_path)
+hadcrut     <- readRDS(had_path)
+
+# ---- 1. Annual mean CO2 ----
+start_year <- 1958
+
+co2_annual <- co2_monthly %>%
+  filter(year >= start_year) %>%
+  group_by(year) %>%
+  summarise(
+    co2_ppm_mean = mean(co2_ppm, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+# ---- 2. Join temperature anomalies ----
+co2_annual <- co2_annual %>%
+  left_join(
+    hadcrut %>% select(year, temp_anomaly_degC),
+    by = "year"
+  )
+
+# ---- 3. Monthly data for squiggle and trend ----
+co2_keeling <- co2_monthly %>%
+  filter(year >= start_year) %>%
+  arrange(year, month)
+
+# ---- 4. Temperature gradient (Ed Hawkins with grey neutral) ----
+stripe_colors <- c(
+  "#08306B", "#08519C", "#2171B5", "#6BAED6", "#C6DBEF",
+  "#D9D9D9",   # neutral grey
+  "#FEE0D2", "#FC9272", "#CB181D", "#99000D"
+)
+
+temp_min <- min(co2_annual$temp_anomaly_degC, na.rm = TRUE)
+temp_max <- max(co2_annual$temp_anomaly_degC, na.rm = TRUE)
+
+temp_scale <- scale_fill_gradientn(
+  colours = stripe_colors,
+  limits  = c(temp_min, temp_max),
+  oob     = scales::squish,
+  name    = "Global temp anomaly (°C)"
+)
+
+# ---- 5. Axis ranges ----
+y_min <- floor(min(co2_annual$co2_ppm_mean, na.rm = TRUE) / 10) * 10
+y_max <- ceiling(max(co2_annual$co2_ppm_mean, na.rm = TRUE) / 10) * 10
+
+x_breaks <- seq(
+  from = floor(start_year / 10) * 10,
+  to   = ceiling(max(co2_annual$year) / 10) * 10,
+  by   = 10
+)
+
+# ---- 6. Ribbon + squiggle + trend ----
+p <- ggplot() +
+  # Continuous temperature-colored CO2 surface
+  geom_ribbon(
+    data = co2_annual,
+    aes(x = year, ymin = y_min, ymax = co2_ppm_mean, fill = temp_anomaly_degC),
+    color = NA
+  ) +
+  # Monthly wiggle line
+  geom_line(
+    data = co2_keeling,
+    aes(x = decimal_year, y = co2_ppm),
+    color = "black",
+    linewidth = 0.3,
+    alpha = 0.6
+  ) +
+  # Deseasonalized trend
+  geom_line(
+    data = co2_keeling,
+    aes(x = decimal_year, y = trend),
+    color = "black",
+    linewidth = 0.8
+  ) +
+  temp_scale +
+  coord_cartesian(ylim = c(y_min, y_max), expand = FALSE) +
+  scale_x_continuous(breaks = x_breaks) +
+  labs(
+    title = expression("Temperature-Colored CO"[2] * " Ribbon, 1958–Present"),
+    subtitle = paste0(
+      "Ribbon height = annual mean CO", "\u2082",
+      "; fill color = HadCRUT5 global temperature anomaly\n",
+      "Lines = monthly CO", "\u2082", " (thin) and deseasonalized trend (thick)"
+    ),
+    x = "Year",
+    y = expression("CO"[2] * " concentration (ppm)")
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    plot.title = element_text(face = "bold"),
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    # legend.position = "right"
+    legend.position = "none"
+  )
+
+# In quarto, without the ragg, The RStudio plot pane will complain if you try to preview the plot
+print(p)
+
+```
+
+## So, why do we care if the climate changes?
+
+### Consequence #1: increasingly frequent and intense climate disasters
+
+There's a strong positive correlation: as CO~2~ levels and global temperatures rise, the frequency and cost of billion-dollar climate disasters (like hurricanes, floods, droughts) also significantly increase, demonstrating that rising greenhouse gases are directly linked to escalating economic burdens from extreme weather events, according to studies analyzing U.S. data from 1980-2021. Here, we look at the accumulated cost of the recorded billion dollar events since 1980.
+
+```{r}
+# 07e_Most_Expensive_Disasters_Neurath_Isotype_Single_Row.R
+# Total CPI-adjusted cost by disaster type (all years)
+# Horizontal bar chart with image-filled bars, most expensive at top
+
+# Image files you will need to produce (JPG, ~512x512 or 600x600 px)
+# images/flooding.jpg
+# images/tropical_cyclone.jpg
+# images/drought.jpg
+# images/freeze.jpg
+# images/severe_storm.jpg
+# images/winter_storm.jpg
+# images/wildfire.jpg
+#
+# Recommended pattern image size:
+#   - 512 x 512 px (sweet spot)
+#   - or 600 x 600 px for a bit more detail
+
+# Square, reasonably small images keep bars crisp and rendering fast.
+
+library(tidyverse)
+library(readr)
+library(fs)
+library(ggpattern)
+
+# -------------------------------------------------------------------
+# 1. Load cleaned data
+# -------------------------------------------------------------------
+
+disasters <- read_rds("data/billion_dollar_disasters_clean.rds")
+
+# -------------------------------------------------------------------
+# 2. Summarise total cost by disaster type
+# -------------------------------------------------------------------
+
+disaster_totals <- disasters |>
+  filter(!is.na(disaster), !is.na(cost_musd)) |>
+  group_by(disaster) |>
+  summarise(
+    total_cost_musd = sum(cost_musd, na.rm = TRUE),
+    .groups = "drop"
+  ) |>
+  mutate(
+    total_cost_busd = total_cost_musd / 1000  # millions → billions
+  ) |>
+  arrange(desc(total_cost_busd))
+
+# Order factor so most expensive appears at TOP of the horizontal plot
+disaster_totals <- disaster_totals |>
+  mutate(
+    disaster = factor(disaster, levels = rev(disaster))
+  )
+
+# -------------------------------------------------------------------
+# 3. Map each disaster type to an image file (for ggpattern)
+# -------------------------------------------------------------------
+# Named character vector: names = disaster types, values = image paths
+
+image_map <- c(
+  "Flooding"         = "images/flooding.jpg",
+  "Tropical Cyclone" = "images/tropical_cyclone.jpg",
+  "Drought"          = "images/drought.jpg",
+  "Freeze"           = "images/freeze.jpg",
+  "Severe Storm"     = "images/severe_storm.jpg",
+  "Winter Storm"     = "images/winter_storm.jpg",
+  "Wildfire"         = "images/wildfire.jpg"
+)
+
+# Optional: warn if any factor levels are missing from the image_map
+missing_images <- setdiff(levels(disaster_totals$disaster), names(image_map))
+if (length(missing_images) > 0) {
+  warning(
+    "Some disaster types have no image mapped:\n",
+    paste(missing_images, collapse = ", "),
+    "\nThose bars will fall back to the plain fill."
+  )
+}
+
+# -------------------------------------------------------------------
+# 4. Plot – horizontal bar chart with image fill
+# -------------------------------------------------------------------
+
+p <- ggplot(disaster_totals,
+            aes(x = total_cost_busd, y = disaster)) +
+  geom_col_pattern(
+    aes(pattern_filename = disaster),
+    pattern = "image",
+    pattern_type  = "tile",
+    pattern_scale = 0.18,        # known-good starting point
+    pattern_aspect_ratio = 1,
+    fill   = "grey90",
+    colour = "black",
+    width  = 0.52                # key: thin bars -> single row
+  ) +
+  scale_pattern_filename_discrete(choices = image_map) +
+  labs(
+    title = "Total Cost of U.S. Billion-Dollar Disasters by Type",
+    subtitle = "Cumulative CPI-adjusted cost, 1980–2023 (billions of USD)\nBars filled with repeating icons by disaster type",
+    x = "Total Cost (Billions of USD)",
+    y = "Disaster Type",
+    caption = "Source: NOAA NCEI Billion-Dollar Disasters"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    legend.position = "none",
+    panel.grid.major.y = element_blank()
+  )
+
+dir_create("figures")
+
+print(p)
+
+# Wider is fine; keep HEIGHT modest so bars don’t get tall enough for 2+ rows
+# ggsave("figures/07e_Most_Expensive_Disasters_image_fill.png",
+#        p, width = 14, height = 3.6, dpi = 300)
+# ggsave(
+#   "figures/07e_Most_Expensive_Disasters_image_fill.png",
+#   p,
+#   device = ragg::agg_png,
+#   width  = 828,   # pixels
+#   height = 588,    # pixels  <-- critical
+#   units  = "px"
+# )
+# ggsave("figures/07e_Most_Expensive_Disasters_image_fill.pdf",
+#        p, width = 14, height = 3.6)
+# 
+# message("Saved image-filled total-cost-by-disaster plots in figures/")
+
+```
+
+### Consequence #2: Glacial loss around the world
+
+CO~2~ concentration and glacial retreat have a strong, intertwined relationship: higher CO~2~ causes warming, leading to glacier melt, while melting ice reduces Earth's reflectivity (albedo), causing more heat absorption, and warm oceans release trapped CO~2~, creating a dangerous positive feedback loop that amplifies warming and accelerates retreat, making it a critical indicator of climate change's severity. It matters because this cycle drives sea-level rise, alters water resources, and releases more greenhouse gases (like methane and CO~2~ from fungi/soil), impacting ecosystems and human communities globally. The Correlation: A Vicious Cycle.
+
+Here we look at a before and after look at glaciers around the world using global mapping tools:
+
+```{r}
+# ============================================================
+# 15b_Global_Glaciers_Then_Now.R
+#
+# Purpose:
+#   Global Carbon Story map:
+#     - Background: all glacier locations (RGI v7), showing
+#       where glaciers are/were around late 20th century
+#     - Overlays: one symbol per RGI region, sized/colored by
+#       estimated fraction of glacier area remaining in ~2020
+#       relative to ~1950.
+#
+# Input:
+#   data/rgi7_glaciers_minimal.rds (from 02r_RGI_v7_ETL.R)
+#
+# Output:
+#   images/global_glaciers_then_now_15b.png
+# ============================================================
+
+library(tidyverse)
+library(sf)
+library(rnaturalearth)
+library(rnaturalearthdata)
+library(ggrepel)
+
+# ---- 1. Load minimal RGI inventory --------------------------
+
+rgi_min <- readRDS("data/rgi7_glaciers_minimal.rds")
+
+rgi_pts <- st_as_sf(
+  rgi_min,
+  coords = c("CenLon", "CenLat"),
+  crs    = 4326
+)
+
+# ---- 2. World basemap (Robinson projection) ----------------
+
+world <- ne_countries(scale = "medium", returnclass = "sf")
+crs_robinson <- 54030  # ESRI:54030
+
+world_proj   <- st_transform(world, crs = crs_robinson)
+rgi_pts_proj <- st_transform(rgi_pts, crs = crs_robinson)
+
+# One centroid per O1Region (mean of glacier centroids)
+region_centroids <- rgi_pts_proj %>%
+  st_geometry() %>%
+  st_coordinates() %>%
+  as_tibble() %>%
+  bind_cols(rgi_min["O1Region"]) %>%
+  group_by(O1Region) %>%
+  summarise(
+    x = mean(X, na.rm = TRUE),
+    y = mean(Y, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+# ---- 3. Approximate regional remaining fractions -----------
+# IMPORTANT: O1Region must match the codes in rgi_min, i.e. "01", "02", ..., "19"
+
+regional_remaining <- tribble(
+  ~O1Region, ~region_name,                  ~frac_remaining_2020, ~notes,
+  "01",      "Alaska",                     0.70, "Substantial loss, large ice remains",
+  "02",      "W. Canada & USA",            0.50, "Rockies & Cascades heavy retreat",
+  "03",      "Arctic Canada N",            0.80, "Slower historically, warming now",
+  "04",      "Arctic Canada S",            0.75, "Peripheral ice losing mass",
+  "05",      "Greenland Periphery",        0.70, "Fast loss, big volume",
+  "06",      "Iceland",                    0.60, "Large losses, some shrinking fast",
+  "07",      "Svalbard",                   0.70, "Marine-terminating, thinning",
+  "08",      "Scandinavia",                0.50, "Major loss since mid-century",
+  "09",      "Russian Arctic",             0.75, "Big complexes, thinning",
+  "10",      "North Asia",                 0.60, "Altai etc., significant loss",
+  "11",      "Central Europe",             0.40, "European Alps, big retreat",
+  "12",      "Caucasus & Mid-East",        0.50, "Many small glaciers shrinking",
+  "13",      "Central Asia",               0.60, "Tien Shan, Pamir",
+  "14",      "South Asia West",            0.70, "Western Himalaya",
+  "15",      "South Asia East",            0.70, "Eastern Himalaya",
+  "16",      "Low Latitudes",              0.40, "Tropics – Andes, Kilimanjaro, etc.",
+  "17",      "Southern Andes",             0.60, "Patagonian icefields retreating",
+  "18",      "New Zealand",                0.50, "Fox/Franz Josef etc.",
+  "19",      "Antarctic & Subantarctic",   0.80, "Many still relatively intact, thinning"
+)
+
+region_plot <- region_centroids %>%
+  left_join(regional_remaining, by = "O1Region") %>%
+  mutate(
+    frac_pct = frac_remaining_2020 * 100,
+    # label for the map
+    label = paste0(O1Region, " ", region_name, "\n", round(frac_pct), "%")
+  )
+
+# ---- 4. Color/size mappings --------------------------------
+
+size_range <- c(3, 9)
+
+col_scale <- scale_fill_gradientn(
+  colours = c("#b30000", "#fdae61", "#ffffbf", "#abd9e9", "#2c7bb6"),
+  values  = scales::rescale(c(0, 0.25, 0.5, 0.75, 1)),
+  name    = "Glacier area remaining\n(~2020 vs ~1950)",
+  labels  = scales::percent_format(accuracy = 1)
+)
+
+# ---- 5. Build map ------------------------------------------
+
+p_global_glaciers <- ggplot() +
+  geom_sf(
+    data   = world_proj,
+    fill   = "grey95",
+    colour = "grey80",
+    linewidth = 0.2
+  ) +
+  geom_sf(
+    data   = rgi_pts_proj,
+    colour = "steelblue3",
+    alpha  = 0.12,
+    size   = 0.3
+  ) +
+  geom_point(
+    data  = region_plot,
+    aes(
+      x    = x,
+      y    = y,
+      fill = frac_remaining_2020,
+      size = frac_remaining_2020
+    ),
+    shape  = 21,
+    colour = "grey30",
+    alpha  = 0.9
+  ) +
+  ggrepel::geom_text_repel(
+    data = region_plot,
+    aes(x = x, y = y, label = label),
+    size              = 3,
+    min.segment.length = 0,
+    seed              = 123,
+    box.padding       = 0.3,
+    point.padding     = 0.2,
+    max.overlaps      = 50
+  ) +
+  scale_size_continuous(
+    range = size_range,
+    guide = "none"
+  ) +
+  col_scale +
+  coord_sf(crs = st_crs(crs_robinson)) +
+  labs(
+    title = "Glaciers Then and Now: A World View",
+    subtitle = paste(
+      "Background: known glacier locations from the Randolph Glacier Inventory v7.0 (glacier product).",
+      "Circles: approximate fraction of glacier area remaining in ~2020 relative to ~1950, by RGI region.",
+      sep = "\n"
+    ),
+    caption = paste(
+      "Glacier positions from RGI 7.0 (glacier product).",
+      "Regional fractions are approximate, for Carbon Story visualization.",
+      sep = " "
+    )
+  ) +
+  theme_minimal(base_size = 11) +
+  theme(
+    panel.grid.major = element_line(color = "grey85", linewidth = 0.2),
+    panel.background = element_rect(fill = "aliceblue", color = NA),
+    plot.background  = element_rect(fill = "white", color = NA),
+    plot.title       = element_text(face = "bold"),
+    plot.subtitle    = element_text(margin = margin(b = 6)),
+    plot.caption     = element_text(size = 8, hjust = 0),
+    legend.position  = "bottom",
+    legend.title     = element_text(size = 9),
+    legend.text      = element_text(size = 8)
+  )
+
+# if (!dir.exists("images")) dir.create("images")
+# 
+# ggsave(
+#   filename = "images/global_glaciers_then_now_15b.png",
+#   plot     = p_global_glaciers,
+#   width    = 9,
+#   height   = 5,
+#   dpi      = 300
+# )
+
+print(p_global_glaciers)
+
+```
+
+### Consequence #3: Sea Level Rise
+
+Higher CO~2~ levels trap heat, warming the planet, which directly causes sea level rise through melting ice (glaciers, ice sheets) and thermal expansion (warm water taking up more space), a critical issue because rising seas threaten coastal communities, infrastructure, economies, and ecosystems with flooding, erosion, and saltwater intrusion, impacting millions globally. This correlation is strong over geological time and current human-caused warming amplifies it, though sea level response lags behind immediate warming due to ocean and ice inertia, meaning effects persist for centuries.
+
+For instance, here is a 50 mile radius around San Francisco, CA. If sea level rises 1.5m you will see purple...and at 2m rise you see red. We can do this by generating an area map, then using a high resolution Digital Elevation Model (DEM) to query a locations elevation above sea level, and using this to color a dot over the map. The current implementation only does locations in the U.S.: other countries may or may not have publicly available data available.
+
+```{r}
+#| results: hide
+
+# ============================================================
+# 17a_sealevel_by_city_differential.R
+#
+# Purpose:
+#   Regional differential sea-level "bands" around a city:
+#     - Water (DEM < 0) in blue
+#     - Band <= sealevel1_m in purple
+#     - Band (sealevel1_m, sealevel2_m] in red  (i.e., additional exposure up to sealevel2_m)
+#
+#   The drawing order matters:
+#     1) water (blue)   -> base
+#     2) purple (<= s1) -> shows lower threshold exposure
+#     3) red (s1..s2)   -> sits on top and highlights added exposure
+#
+# Notes:
+#   - Threshold exposure only (not storm surge / defenses)
+#   - Requires internet access for geocoding + DEM download
+#   - Uses base/terra plotting for speed and crisp raster rendering
+# ============================================================
+
+suppressPackageStartupMessages({
+  library(sf)
+  library(terra)
+  library(elevatr)
+  library(tidygeocoder)
+  library(dplyr)
+  library(stringr)
+  library(tibble)
+})
+
+# ---- Helpers --------------------------------------------------------------
+mi_to_m <- function(mi) mi * 1609.344
+
+slugify <- function(x) {
+  x |>
+    stringr::str_to_lower() |>
+    stringr::str_replace_all("[^a-z0-9]+", "_") |>
+    stringr::str_replace_all("^_+|_+$", "")
+}
+
+ensure_dir <- function(path) if (!dir.exists(path)) dir.create(path, recursive = TRUE)
+
+# Buffer in meters requires a projected CRS; Web Mercator is fine for prototyping
+buffer_point_m <- function(pt_ll, meters) {
+  pt_ll |>
+    sf::st_transform(3857) |>
+    sf::st_buffer(dist = meters) |>
+    sf::st_transform(4326)
+}
+
+# Internal: draw the composite (water + two bands)
+# ---- Plot helper: tighter margins, bigger map ----------------------------
+.plot_bands_base <- function(
+    dem,
+    band_purple,
+    band_red,
+    roi,
+    city_pt,
+    city_query,
+    radius_mi,
+    sealevel1_m,
+    sealevel2_m,
+    z,
+    water_col = "#6baed6",
+    land_col  = "grey85",
+    purple_col = "#5A189A",
+    red_col    = "red"
+) {
+  op <- par(no.readonly = TRUE)
+  on.exit(par(op), add = TRUE)
+  
+  # Tighten margins so the map fills the device
+  par(
+    mar  = c(1.2, 1.2, 2.2, 0.8),  # bottom, left, top, right
+    oma  = c(0, 0, 0, 0),
+    xaxs = "i", yaxs = "i"
+  )
+  
+  # 0) Paint ROI background as water so it's always visible
+  plot(
+    sf::st_geometry(roi),
+    col = water_col, border = NA,
+    axes = TRUE
+  )
+  
+  # 1) Land base (>= 0) to prevent "empty" looking plots
+  land_base <- dem
+  land_base[land_base < 0] <- NA
+  terra::plot(land_base, col = land_col, legend = FALSE, add = TRUE)
+  
+  # 2) Purple band (<= sealevel1)
+  terra::plot(band_purple, col = purple_col, legend = FALSE, add = TRUE)
+  
+  # 3) Red band (sealevel1..sealevel2)
+  terra::plot(band_red, col = red_col, legend = FALSE, add = TRUE)
+  
+  # ROI outline + city marker
+  plot(sf::st_geometry(roi), add = TRUE, border = "grey30", lwd = 2)
+  plot(sf::st_geometry(city_pt), add = TRUE, pch = 16, cex = 1.2)
+  
+  # Titles using mtext so they don't steal plot area
+  mtext(
+    paste0("Sea Level Exposure Bands (", sealevel1_m, "m vs ", sealevel2_m, "m)"),
+    side = 3, line = 0.6, cex = 1.6, font = 2
+  )
+  mtext(
+    paste0(city_query, " — ", radius_mi, " miles radius; DEM z=", z),
+    side = 1, line = 0.3, cex = 1.1
+  )
+}
+
+# ---- Main function --------------------------------------------------------
+plot_sealevel_by_city_differential <- function(
+    city_query,
+    radius_mi    = 25,
+    sealevel1_m  = 1.5,
+    sealevel2_m  = 2.0,
+    plot_pane    = TRUE,
+    z            = 11,
+    out_dir      = "images"
+) {
+  stopifnot(is.character(city_query), length(city_query) == 1, nzchar(city_query))
+  stopifnot(is.numeric(radius_mi), radius_mi > 0)
+  stopifnot(is.numeric(sealevel1_m), sealevel1_m >= 0)
+  stopifnot(is.numeric(sealevel2_m), sealevel2_m >= 0)
+  stopifnot(is.logical(plot_pane), length(plot_pane) == 1)
+  stopifnot(is.numeric(z), z >= 1)
+  
+  if (sealevel2_m <= sealevel1_m) {
+    stop("sealevel2_m must be greater than sealevel1_m (e.g., 2.0 > 1.5).")
+  }
+  
+  ensure_dir(out_dir)
+  slug <- slugify(city_query)
+  
+  # ---- Geocode -----------------------------------------------------------
+  geo <- tibble::tibble(address = city_query) |>
+    tidygeocoder::geocode(
+      address = address,
+      method  = "osm",
+      lat     = lat,
+      long    = lon
+    )
+  
+  if (nrow(geo) == 0 || any(is.na(geo$lat)) || any(is.na(geo$lon))) {
+    stop("Geocoding failed. Try a more specific city_query, or set lon/lat manually.")
+  }
+  
+  city_pt <- sf::st_as_sf(geo, coords = c("lon", "lat"), crs = 4326)
+  
+  # ---- ROI: radius miles around city ------------------------------------
+  roi <- buffer_point_m(city_pt, mi_to_m(radius_mi))
+  
+  # ---- DEM download (regional) ------------------------------------------
+  dem_hi <- elevatr::get_elev_raster(locations = roi, z = z, clip = "locations") |>
+    terra::rast()
+  print(terra::global(dem_hi, range, na.rm = TRUE))
+  
+  # ---- Land-only elevation ----------------------------------------------
+  dem_land <- dem_hi
+  dem_land[dem_land < 0] <- NA
+  
+  # ---- Bands -------------------------------------------------------------
+  # Purple band: land <= sealevel1_m
+  band_purple <- dem_land <= sealevel1_m
+  band_purple[band_purple == 0] <- NA
+  
+  # Red band: additional exposure between sealevel1 and sealevel2
+  band_red <- dem_land > sealevel1_m & dem_land <= sealevel2_m
+  band_red[band_red == 0] <- NA
+  
+  # ---- Output filename ---------------------------------------------------
+  outfile <- file.path(
+    out_dir,
+    paste0(
+      "17a_regional_", slug,
+      "_r", radius_mi, "mi",
+      "_s1", sealevel1_m, "m",
+      "_s2", sealevel2_m, "m",
+      "_z", z,
+      ".png"
+    )
+  )
+  
+  # ---- Plot to Plot pane (optional) -------------------------------------
+  if (plot_pane) {
+    .plot_bands_base(
+      dem = dem_hi,
+      band_purple = band_purple,
+      band_red = band_red,
+      roi = roi,
+      city_pt = city_pt,
+      city_query = city_query,
+      radius_mi = radius_mi,
+      sealevel1_m = sealevel1_m,
+      sealevel2_m = sealevel2_m,
+      z = z
+    )
+  }
+  
+  # ---- Always save to file ----------------------------------------------
+  png(outfile, width = 1600, height = 1100, res = 200)
+  .plot_bands_base(
+    dem = dem_hi,
+    band_purple = band_purple,
+    band_red = band_red,
+    roi = roi,
+    city_pt = city_pt,
+    city_query = city_query,
+    radius_mi = radius_mi,
+    sealevel1_m = sealevel1_m,
+    sealevel2_m = sealevel2_m,
+    z = z
+  )
+  dev.off()
+  
+  message("Saved: ", normalizePath(outfile))
+  
+  invisible(list(
+    city_query   = city_query,
+    radius_mi    = radius_mi,
+    sealevel1_m  = sealevel1_m,
+    sealevel2_m  = sealevel2_m,
+    z            = z,
+    outfile      = outfile,
+    city_pt      = city_pt,
+    roi          = roi,
+    dem          = dem_hi,
+    band_purple  = band_purple,
+    band_red     = band_red
+  ))
+}
+
+# ---- Example (uncomment to run) ------------------------------------------
+# source("scripts/17a_sealevel_by_city_differential.R")
+plot_sealevel_by_city_differential("San Francisco, California, USA",
+                                    radius_mi = 50, sealevel1_m = 1.5, sealevel2_m = 2.0)
+# plot_sealevel_by_city_differential("Portland, Oregon, USA",
+#                                    radius_mi = 50, sealevel1_m = 1.5, sealevel2_m = 2.0)
+# plot_sealevel_by_city_differential("Seattle, Washington, USA",
+#                                    radius_mi = 50, sealevel1_m = 1.5, sealevel2_m = 2.0)
+# plot_sealevel_by_city_differential("Vancouver, BC, Canada",
+#                                    radius_mi = 50, sealevel1_m = 1.5, sealevel2_m = 2.0)
+
+```
+
+## What I learned
+
+The workflow I developed looks something like this:
+
+1.  What question do you wish to ask?
+
+2.  Where is data that supports that question?
+
+3.  Download that data and place it in a raw data folder.
+
+4.  Move that raw data into an RDS file in a 'cleaned' data folder, doing any cleaning, joining, or conversion as you go. This data drives the graphical representation.
+
+5.  Use the 'cleaned' data to create a chart. The question asked will help determine the charting method (line, bar, map, facet) that fits the stated purpose. Refine the chart using best practices and standard theming into a 'final' data visualization. Use the RStudio plot pane as a quick view, but always save an image to ensure the final Quarto image is legible.
+
+6.  Consider these 'final' visualizations as ingredients to be assembled in a Quarto document.
+
+7.  Assemble this final document.
+
+This pattern tended to repeat itself over the evolution of the report. Every graph shown, and many others not shown, were exercises in asking for data, finding it, cleaning it, using it to create a visualization. I believe this is the 'general' workflow in data visualization work.
+
+## Addendum
+
+A couple of things really stood out about this project.
+
+### The R community
+
+The first is the rich ecology of the R community. The ability to handle this workflow with such ease, and the extensible nature of the Grammar of Graphics made this excursion a true joy. This used to be an expensive foray into expensive graphics platforms like Tableaux, but this experience simply cost me time: time I would have spent learning any graphics platform. When I needed something new, the R community generally had made a package available to accomplish a new required feature or visualization.
+
+### Public domain data
+
+The Trump administration has formally announced its intent to dismantle the National Center for Atmospheric Research (NCAR) and has proposed massive budget cuts to the National Oceanic and Atmospheric Administration (NOAA), which would eliminate its core climate and weather research functions.
+
+Much of data I needed to find has been archived by either NCAR or NOAA. This data is global in scope. Losing access to it will be a incredible loss of relevant information about our world. Losing it is like losing our sight or sense of touch. We will be stumbling around in the dark.
